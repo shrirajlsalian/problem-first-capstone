@@ -1,0 +1,26 @@
+[project]
+name = "agentic-policy-conflicts"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+  "langchain",
+  "langgraph",
+  "langchain-openai",
+  "langchain-community",
+  "langchain-chroma",
+  "chromadb",
+  "pydantic>=2",
+  "jinja2",
+  "python-dotenv",
+  "tqdm",
+  "rich",
+  "langsmith",
+  "tavily-python",
+  "fastapi",
+  "uvicorn[standard]",
+  "python-multipart",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["src"]

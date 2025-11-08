@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Agentic Policy Conflict Detector</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>Agentic Policy Conflict Detector</h1>
+      <p>
+        Upload a policy document, select an iteration, and review the generated conflict report.
+      </p>
+    </header>
+
+    <main>
+      <section class="card">
+        <form id="run-form" enctype="multipart/form-data">
+          <div class="form-row">
+            <label for="iteration">Iteration</label>
+            <select id="iteration" name="iteration" required>
+              <option value="1">Iteration 1 &mdash; Basic Conflict Detection</option>
+              <option value="2">Iteration 2 &mdash; Conflict + Judge Verification</option>
+              <option value="3">Iteration 3 &mdash; HITL Queue</option>
+              {% if iteration4_available %}
+              <option value="4">Iteration 4 &mdash; Agentic MCP Workflow</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <div class="form-row">
+            <label for="upload">New Policy Document</label>
+            <input id="upload" name="upload" type="file" accept=".pdf,.doc,.docx,.txt,.csv" required />
+          </div>
+
+          <div class="form-row">
+            <label for="index_dir">Existing Corpus Directory</label>
+            <input
+              id="index_dir"
+              name="index_dir"
+              type="text"
+              placeholder="./data/existing"
+              value="{{ default_index_dir }}"
+            />
+            <small>
+              Provide a directory of existing policies for comparison. Relative paths resolve from the project root.
+            </small>
+          </div>
+
+          <details id="advanced-options">
+            <summary>Advanced Options</summary>
+
+            <div class="form-row">
+              <label>
+                <input type="checkbox" name="approve_all" />
+                Auto-approve queued items (Iterations 3 &amp; 4)
+              </label>
+            </div>
+
+            <div class="form-row iter4-only">
+              <label>
+                <input type="checkbox" name="unattended" />
+                Enable unattended mode (Iteration 4)
+              </label>
+            </div>
+
+            <div class="form-row iter4-only">
+              <label>
+                <input type="checkbox" name="disable_interrupts" />
+                Disable LangGraph interrupts (Iteration 4)
+              </label>
+            </div>
+
+            <div class="form-row iter4-only">
+              <label for="mcp_endpoint">MCP Endpoint</label>
+              <input id="mcp_endpoint" name="mcp_endpoint" type="text" placeholder="http://localhost:8000" />
+            </div>
+          </details>
+
+          <div class="form-row">
+            <button type="submit">Run Analysis</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Activity Log</h2>
+        <pre id="logs" class="log-viewer">Awaiting execution...</pre>
+      </section>
+
+      <section class="card">
+        <h2>Conflict Report</h2>
+        <div id="report" class="report-viewer">
+          <em>No report generated yet. Submit a run to view results.</em>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        Need to run the backend manually? Launch with
+        <code>uvicorn ui.main:app --reload</code>
+        from the project root.
+      </p>
+    </footer>
+
+    <script>
+      const iterationSelect = document.getElementById("iteration");
+      const iter4Elements = document.querySelectorAll(".iter4-only");
+
+      function toggleIter4Options() {
+        const showIter4 = iterationSelect.value === "4";
+        iter4Elements.forEach((el) => {
+          el.style.display = showIter4 ? "block" : "none";
+        });
+      }
+
+      toggleIter4Options();
+      iterationSelect.addEventListener("change", toggleIter4Options);
+
+      const form = document.getElementById("run-form");
+      const logsEl = document.getElementById("logs");
+      const reportEl = document.getElementById("report");
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        logsEl.textContent = "Running analysis...";
+        reportEl.innerHTML = "<em>Generating report...</em>";
+
+        const formData = new FormData(form);
+
+        try {
+          const response = await fetch("/run", {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          logsEl.textContent = data.logs || "No logs captured.";
+
+          if (data.status === "success") {
+            const markdown = data.report || "_No report returned._";
+            reportEl.innerHTML = marked.parse(markdown);
+          } else {
+            reportEl.innerHTML =
+              "<strong>Run failed.</strong> " +
+              (data.error ? `<p>${data.error}</p>` : "<p>Check logs for details.</p>");
+          }
+        } catch (error) {
+          logsEl.textContent = `Request failed: ${error}`;
+          reportEl.innerHTML = "<strong>Unable to generate report.</strong>";
+        }
+      });
+    </script>
+  </body>
+</html>
+
+
