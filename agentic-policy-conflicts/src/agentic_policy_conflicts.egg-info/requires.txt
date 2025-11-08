@@ -1,0 +1,16 @@
+langchain
+langgraph
+langchain-openai
+langchain-community
+langchain-chroma
+chromadb
+pydantic>=2
+jinja2
+python-dotenv
+tqdm
+rich
+langsmith
+tavily-python
+fastapi
+uvicorn[standard]
+python-multipart
